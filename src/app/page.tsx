@@ -1,103 +1,144 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { CompanySearchForm } from '@/components/forms/CompanySearchForm';
+import { TabNavigation } from '@/components/ui/TabNavigation';
+import { SolutionTab } from '@/components/tabs/SolutionTab';
+import { EnhancedPDFButton } from '@/components/ui/EnhancedPDFButton';
+import { ReportTemplate } from '@/components/reports/ReportTemplate';
+import { useCompanySearch } from '@/hooks/useCompanySearch';
+import { useSolutions } from '@/hooks/useSolutions';
+import { CompanyFormData, Tab } from '@/types';
+
+const tabs: Tab[] = [
+  { id: 0, label: '有価証券報告書要約' },
+  { id: 1, label: '仮説立て（担当者課題）' },
+  { id: 2, label: 'ソリューションマッチング' },
+  { id: 3, label: 'ヒアリング項目提案' },
+  { id: 4, label: 'レポート出力' }
+];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const [companyFormData, setCompanyFormData] = useState<CompanyFormData>({
+    companyName: '',
+    departmentName: '',
+    positionName: '',
+    jobScope: ''
+  });
+  
+  const { loading, results, loadingSteps, searchCompany } = useCompanySearch();
+  const { solutions } = useSolutions();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleSearch = async (formData: CompanyFormData): Promise<void> => {
+    setCompanyFormData(formData);
+    await searchCompany({
+      company_name: formData.companyName,
+      department_name: formData.departmentName,
+      position_name: formData.positionName,
+      job_scope: formData.jobScope
+    });
+  };
+
+  const hasResults = results.summary || results.hypothesis || results.hearing_items || results.matching_result;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex">
+        {/* サイドバー */}
+        <CompanySearchForm
+          onSubmit={handleSearch}
+          loading={loading}
+          loadingSteps={loadingSteps}
+        />
+
+        {/* メインコンテンツ */}
+        <div className="flex-1 p-8">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">顧客理解AIエージェント</h1>
+            
+            {/* PDF出力ボタン */}
+            <EnhancedPDFButton
+              companyData={companyFormData}
+              results={results}
+              solutions={solutions}
+              disabled={!hasResults || loading}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+
+          {/* タブナビゲーション */}
+          <TabNavigation
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            disabled={loading}
+          />
+
+          {/* タブコンテンツ */}
+          <div className="bg-white rounded-lg shadow p-6 min-h-96">
+            {activeTab === 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">有価証券報告書要約</h2>
+                {results.summary ? (
+                  <div className="prose max-w-none">
+                    <pre className="whitespace-pre-wrap text-gray-700 font-sans">{results.summary}</pre>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">企業名を入力して検索ボタンを押してください。</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 1 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">AI仮説・担当者課題提案</h2>
+                {results.hypothesis ? (
+                  <div className="prose max-w-none">
+                    <pre className="whitespace-pre-wrap text-gray-700 font-sans">{results.hypothesis}</pre>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">部署名・役職・業務範囲を入力して検索してください。</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 2 && (
+              <SolutionTab
+                solutions={solutions}
+                matchingResult={results.matching_result}
+              />
+            )}
+
+            {activeTab === 3 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">訪問時のヒアリング項目（AI提案）</h2>
+                {results.hearing_items ? (
+                  <div className="prose max-w-none">
+                    <pre className="whitespace-pre-wrap text-gray-700 font-sans">{results.hearing_items}</pre>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">部署名と役職を入力して検索してください。</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 4 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">レポート出力プレビュー</h2>
+                {hasResults ? (
+                  <ReportTemplate
+                    companyData={companyFormData}
+                    results={results}
+                    solutions={solutions}
+                  />
+                ) : (
+                  <p className="text-gray-500">分析結果がありません。まず企業検索を実行してください。</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
