@@ -25,18 +25,18 @@ class ApiClient {
   }
 
   async getSolutions(): Promise<SolutionsResponse> {
-    return this.request<SolutionsResponse>('solutions');
+    return this.request<SolutionsResponse>('/solutions');
   }
 
   async searchCompany(data: SearchRequest): Promise<SearchResponse> {
-    return this.request<SearchResponse>('search-company', {
+    return this.request<SearchResponse>('/search-company', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async healthCheck(): Promise<{ message: string }> {
-    return this.request<{ message: string }>('');
+    return this.request<{ message: string }>('/');
   }
 }
 
